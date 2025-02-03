@@ -35,7 +35,7 @@ origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=origins,  # Allow specific origins
+    allow_origins=["*"],  # Allow specific origins
     allow_credentials=True,
     allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
     allow_headers=["*"],  # Allow all headers
@@ -57,7 +57,7 @@ class Session(BaseModel):
     #     arbitrary_types_allowed = True
 
 class Chat(BaseModel):
-    chat_id: Optional[int] = None
+    chats_id: Optional[int] = None
     session_id: int
     sender: str
     message: str
@@ -121,7 +121,7 @@ def get_session():
 @app.get("/chats")
 def get_chat():
     cur = conn.cursor()
-    cur.execute("SELECT chats_id, session_id, sender, message, timestamp FROM chats")
+    cur.execute("SELECT chats_id, session_id, sender, message, timestamp FROM chats ORDER BY timestamp DESC")
     chats = cur.fetchall()
     cur.close()
     return [{"chats_id": u[0], "session_id": u[1], "message": u[2], "timestamp": u[3]} for u in chats]
@@ -162,7 +162,7 @@ def create_chat(chat: Chat):
     chat.chats_id = cursor.fetchone()[0]
     conn.commit()
     cursor.close()
-    return {"chat_id": chat.chat_id, "sender": chat.sender, "message":chat.message}
+    return {"chat_id": chat.chats_id, "sender": chat.sender, "message":chat.message}
 
 if __name__ == "__main__":
     uvicorn.run(app, host="127.0.0.1", port=8001)

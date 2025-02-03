@@ -3,6 +3,10 @@ from psycopg2.extras import Json
 import os
 from datetime import datetime
 from fastapi import FastAPI
+import uvicorn
+from pydantic import BaseModel
+from typing import Optional
+from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
 
@@ -22,20 +26,38 @@ conn = psycopg2.connect(
         port=DB_PORT
 )
 
+# Allowed addresses
+origins = [
+    "http://localhost:3000",  # Frontend URL
+    "http://127.0.0.1:3000",
+    "*",  # Allow all origins (not recommended for production)
+]
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=origins,  # Allow specific origins
+    allow_credentials=True,
+    allow_methods=["*"],  # Allow all methods (GET, POST, etc.)
+    allow_headers=["*"],  # Allow all headers
+)
+
 # Creating objects to be used int other
-class User():
-    user_id: int
+class User(BaseModel):
+    user_id: Optional[int] = None
     username: str
     email: str
     password: str
 
-class Session():
-    session_id: int
+class Session(BaseModel):
+    session_id: Optional[int] = None
     user_id: int
-    context: Json
+    context: dict = {}
 
-class Chat():
-    chat_id: int
+    # class Config:
+    #     arbitrary_types_allowed = True
+
+class Chat(BaseModel):
+    chat_id: Optional[int] = None
     session_id: int
     sender: str
     message: str
@@ -59,7 +81,7 @@ def create_tables():
 
         CREATE TABLE IF NOT EXISTS sessions (
             session_id SERIAL PRIMARY KEY,
-            user_id INT REFERENCES users(user_id),
+            user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
             start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
             end_time TIMESTAMP,
             status VARCHAR(50) DEFAULT 'active',
@@ -68,7 +90,7 @@ def create_tables():
 
         CREATE TABLE IF NOT EXISTS chats (
             chats_id SERIAL PRIMARY KEY,
-            session_id INT REFERENCES session(session_id),
+            session_id INT REFERENCES sessions(session_id) ON DELETE CASCADE,
             sender VARCHAR(50) NOT NULL,
             message TEXT NOT NULL,
             timestamp TIMESTAMP DEFAULT CURRENT_TIMESTAMP
@@ -77,14 +99,13 @@ def create_tables():
     
     conn.commit()
     cursor.close()
-    conn.close()
 
 
 # Getting info to the front end  
 @app.get("/users")
 def get_user():
     cur = conn.cursor()
-    cur.execute("SELECT id, username, email FROM users")
+    cur.execute("SELECT user_id, username, email FROM users")
     users = cur.fetchall()
     cur.close()
     return [{"id": u[0], "username": u[1], "email": u[2]} for u in users]
@@ -92,18 +113,18 @@ def get_user():
 @app.get("/sessions")
 def get_session():
     cur = conn.cursor()
-    cur.execute("SELECT session_id, user_id, context FROM session")
-    users = cur.fetchall()
+    cur.execute("SELECT session_id, user_id, context FROM sessions")
+    sessions = cur.fetchall()
     cur.close()
-    return [{"id": u[0], "name": u[1], "email": u[2]} for u in users]
+    return [{"session_id": u[0], "user_id": u[1], "context": u[2]} for u in sessions]
 
 @app.get("/chats")
 def get_chat():
     cur = conn.cursor()
-    cur.execute("SELECT chats_id, session_id, sender, timestamp, chat_data FROM chats")
-    users = cur.fetchall()
+    cur.execute("SELECT chats_id, session_id, sender, message, timestamp FROM chats")
+    chats = cur.fetchall()
     cur.close()
-    return [{"id": u[0], "name": u[1], "email": u[2]} for u in users]
+    return [{"chats_id": u[0], "session_id": u[1], "message": u[2], "timestamp": u[3]} for u in chats]
 
 
 # Creating info in the database
@@ -120,25 +141,28 @@ def create_user(user: User):
     return {"id": user.user_id, "name": user.username, "email": user.email}
 
 @app.post("/sessions")
-def create_session(session: Session, user: User):
+def create_session(session: Session):
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO sessions (user_id, session.context) VALUES (%s, %s, %s) RETURNING session_id",
-        (user.user_id, session.context)
+        "INSERT INTO sessions (user_id, context) VALUES (%s, %s) RETURNING session_id",
+        (session.user_id, Json(session.context))
     )
     session.session_id = cursor.fetchone()[0]
     conn.commit()
     cursor.close()
-    return {"session_id": session.session_id, "context": session.context}
+    return {"session_id": session.session_id, "context": Json(session.context)}
 
 @app.post("/chats")
 def create_chat(chat: Chat):
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO chats (session_id, sender, message) VALUES (%s, %s, %s) RETURNING chat_id",
-        (Session.session_id, chat.sender, chat.message)
+        "INSERT INTO chats (session_id, sender, message) VALUES (%s, %s, %s) RETURNING chats_id",
+        (chat.session_id, chat.sender, chat.message)
     )
-    chat.chat_id = cursor.fetchone()[0]
+    chat.chats_id = cursor.fetchone()[0]
     conn.commit()
     cursor.close()
-    return {"chat_id": chat.chat_id, "sender": chat.sender}
+    return {"chat_id": chat.chat_id, "sender": chat.sender, "message":chat.message}
+
+if __name__ == "__main__":
+    uvicorn.run(app, host="127.0.0.1", port=8001)

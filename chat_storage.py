@@ -124,7 +124,7 @@ def get_chat():
     cur.execute("SELECT chats_id, session_id, sender, message, timestamp FROM chats ORDER BY timestamp DESC")
     chats = cur.fetchall()
     cur.close()
-    return [{"chats_id": u[0], "session_id": u[1], "message": u[2], "timestamp": u[3]} for u in chats]
+    return [{"chats_id": u[0], "session_id": u[1], "sender": u[2], "message": u[3], "timestamp": u[4]} for u in chats]
 
 
 # Creating info in the database

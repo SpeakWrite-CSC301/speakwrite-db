@@ -1,4 +1,4 @@
-CREATE TABLE users (
+CREATE TABLE IF NOT EXISTS users (
     user_id SERIAL PRIMARY KEY,
     username VARCHAR(255) NOT NULL,
     email VARCHAR(255) NOT NULL,
@@ -7,7 +7,7 @@ CREATE TABLE users (
     last_login TIMESTAMP
 );
 
-CREATE TABLE sessions (
+CREATE TABLE IF NOT EXISTS sessions (
     session_id SERIAL PRIMARY KEY,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
@@ -17,7 +17,7 @@ CREATE TABLE sessions (
 );
 
 -- Messages Table
-CREATE TABLE chats (
+CREATE TABLE IF NOT EXISTS chats (
     chats_id SERIAL PRIMARY KEY,
     session_id INT REFERENCES sessions(session_id) ON DELETE CASCADE,
     sender VARCHAR(50) NOT NULL,  

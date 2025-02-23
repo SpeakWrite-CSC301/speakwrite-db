@@ -9,6 +9,7 @@ CREATE TABLE IF NOT EXISTS users (
 
 CREATE TABLE IF NOT EXISTS sessions (
     session_id SERIAL PRIMARY KEY,
+    session_name VARCHAR(50) NOT NULL,
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMP,

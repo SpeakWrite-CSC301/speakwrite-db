@@ -36,21 +36,22 @@ def post_session(session: dict):
 @router.patch("/sessions/{session_id}")
 def patch_session(session_id: int, new_session_data: dict):
     cursor = conn.cursor()
+
+    response = {}
     if "new_session_name" in new_session_data:
         cursor.execute(
             "UPDATE sessions SET session_name = %s WHERE session_id = %s", (new_session_data["new_session_name"], session_id)
         )
-        conn.commit()
-        cursor.close()
-        return {"session_id": session_id, "session_name": new_session_data["new_session_name"]}
+        response = {"session_id": session_id, "session_name": new_session_data["new_session_name"]}
     elif "message" in new_session_data:
         context = json.dumps(new_session_data)
         cursor.execute(
             "UPDATE sessions SET context = %s WHERE session_id = %s", (context, session_id)
         )
-        conn.commit()
-        cursor.close()
-        return {"session_id": session_id, "context": context}
+        response = {"session_id": session_id, "context": context}
+    else:
+        response = {"DB ERROR: INVALID REQUEST"} # TODO implement error handling across these services
 
-    #in all other cases
-    return {"DB ERROR: INVALID REQUEST"} # TODO implement error handling across these services
+    conn.commit()
+    cursor.close()
+    return response

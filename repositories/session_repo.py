@@ -23,3 +23,13 @@ def post_session(session: dict):
     conn.commit()
     cursor.close()
     return {"session_id": session["session_id"], "session_name": session["session_name"], "context": Json(session["context"])}
+
+@router.patch("/sessions/{session_id}")
+def patch_session(session_id: int, new_session_data: dict):
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE sessions SET session_name = %s WHERE session_id = %s", (new_session_data["new_session_name"], session_id)
+    )
+    conn.commit()
+    cursor.close()
+    return {"session_id": session_id, "session_name": new_session_data["new_session_name"]}

@@ -13,6 +13,7 @@ CREATE TABLE IF NOT EXISTS sessions (
     user_id INT REFERENCES users(user_id) ON DELETE CASCADE,
     start_time TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     end_time TIMESTAMP,
+    last_updated TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
     status VARCHAR(50) DEFAULT 'active',
     context JSONB DEFAULT '{}'
 );

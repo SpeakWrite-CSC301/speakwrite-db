@@ -2,13 +2,14 @@ from fastapi import APIRouter
 from db_connection import conn
 from psycopg2.extras import Json
 import json
+from datetime import datetime as dt
 
 router = APIRouter()
 
 @router.get("/sessions")
 def get_sessions():
     cur = conn.cursor()
-    cur.execute("SELECT session_id, session_name, user_id, context FROM sessions")
+    cur.execute("SELECT session_id, session_name, user_id, context FROM sessions ORDER BY last_updated DESC")
     sessions = cur.fetchall()
     cur.close()
     return [{"session_id": u[0], "session_name": u[1], "user_id": u[2], "context": u[3]} for u in sessions]
@@ -25,8 +26,8 @@ def get_session(session_id: int):
 def post_session(session: dict):
     cursor = conn.cursor()
     cursor.execute(
-        "INSERT INTO sessions (session_name, user_id, context) VALUES (%s, %s, %s) RETURNING session_id",
-        (session["session_name"], session["user_id"], Json(session["context"]))
+        "INSERT INTO sessions (session_name, user_id, context, last_updated) VALUES (%s, %s, %s, %s) RETURNING session_id",
+        (session["session_name"], session["user_id"], Json(session["context"]), dt.now()) # assigning last_updated here, to stay consistent with timezone of rest of the sessions
     )
     session["session_id"] = cursor.fetchone()[0]
     conn.commit()
@@ -40,13 +41,13 @@ def patch_session(session_id: int, new_session_data: dict):
     response = {}
     if "new_session_name" in new_session_data:
         cursor.execute(
-            "UPDATE sessions SET session_name = %s WHERE session_id = %s", (new_session_data["new_session_name"], session_id)
+            "UPDATE sessions SET session_name = %s, last_updated = %s WHERE session_id = %s", (new_session_data["new_session_name"], dt.now(), session_id,)
         )
         response = {"session_id": session_id, "session_name": new_session_data["new_session_name"]}
     elif "message" in new_session_data:
         context = json.dumps(new_session_data)
         cursor.execute(
-            "UPDATE sessions SET context = %s WHERE session_id = %s", (context, session_id)
+            "UPDATE sessions SET context = %s, last_updated = %s WHERE session_id = %s", (context, dt.now(), session_id)
         )
         response = {"session_id": session_id, "context": context}
     else:

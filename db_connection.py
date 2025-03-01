@@ -1,11 +1,16 @@
 import psycopg2
+from dotenv import load_dotenv
+import os
+
+# Load environment variables from .env file
+load_dotenv()
 
 # Database Connection Details
-DB_NAME = "speakwrite"
-DB_USER = "speakwrite_user"
-DB_PASSWORD = "onhQjQKz9GY5RpNr66Fj4rGNTu54eylp"
-DB_HOST = "dpg-cunn7stumphs73bomfb0-a.oregon-postgres.render.com"  
-DB_PORT = "5432"
+DB_NAME = os.getenv("DB_NAME")
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = os.getenv("DB_PORT")
 
 #Connect to PostgreSQL
 conn = psycopg2.connect(

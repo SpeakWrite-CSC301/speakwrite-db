@@ -56,3 +56,13 @@ def patch_session(session_id: int, new_session_data: dict):
     conn.commit()
     cursor.close()
     return response
+
+@router.delete("/sessions/{session_id}")
+def delete_session(session_id: int):
+    cursor = conn.cursor()
+    cursor.execute(
+        "DELETE FROM sessions WHERE session_id = %s", (session_id,)
+    )
+    conn.commit()
+    cursor.close()
+    return {"message": "Session successfully deleted", "session_id": session_id}

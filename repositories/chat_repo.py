@@ -17,14 +17,18 @@ def get_chat(user_id: Optional[int] = Query(None, description="Filter chats by u
     return [{"chats_id": u[0], "session_id": u[1], "sender": u[2], "message": u[3], "timestamp": u[4]} for u in chats]
 
 @router.post("/chats")
-def post_chat(chat: dict):
+def post_chat(chat: dict, user_id: Optional[int] = Query(None, description="Filter chats by user")):
+    
     cursor = conn.cursor()
 
-    cursor.execute(
-        "SELECT username FROM users WHERE user_id = %s",
-        (chat["sender"],)
-    )
-    chat["sender"] = cursor.fetchone()[0]
+    if (chat["sender"] != "speakwrite"):
+
+        cursor.execute(
+            "SELECT username FROM users WHERE user_id = %s",
+            (user_id,)
+        )
+        chat["sender"] = cursor.fetchone()[0]
+    
 
     cursor.execute(
         "INSERT INTO chats (session_id, sender, message) VALUES (%s, %s, %s) RETURNING chats_id",

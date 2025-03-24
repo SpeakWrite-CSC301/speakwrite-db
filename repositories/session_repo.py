@@ -43,6 +43,8 @@ def post_session(session: dict, user_id: Optional[int] = Query(None, description
 
 @router.patch("/sessions/{session_id}")
 def patch_session(session_id: int, new_session_data: dict, user_id: Optional[int] = Query(None, description="Filter sessions by user_id")):
+    print(new_session_data)
+    
     cursor = conn.cursor()
 
     if user_id is not None:

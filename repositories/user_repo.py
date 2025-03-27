@@ -5,6 +5,7 @@ import json
 from datetime import datetime as dt
 from passlib.context import CryptContext
 from typing import Optional
+import psycopg2.errors
 
 router = APIRouter()
 
@@ -22,17 +23,21 @@ def get_user():
 @router.post("/users")
 def post_user(user: dict):
     cursor = conn.cursor()
-    hashed_password = pwd_context.hash(user["password"])
-    user["password"] = hashed_password
-    cursor.execute(
-        "INSERT INTO users (username, email, password) VALUES (%s, %s, %s) RETURNING user_id",
-        (user["username"], user["email"], user["password"])
-    )
-    user["user_id"] = cursor.fetchone()[0]
-    conn.commit()
-    cursor.close()
-    return {"id": user["user_id"], "name": user["username"], "email": user["email"]}
-
+    try:
+      hashed_password = pwd_context.hash(user["password"])
+      user["password"] = hashed_password
+      cursor.execute(
+          "INSERT INTO users (username, email, password) VALUES (%s, %s, %s) RETURNING user_id",
+          (user["username"], user["email"], user["password"])
+      )
+      user["user_id"] = cursor.fetchone()[0]
+      conn.commit()
+      return {"id": user["user_id"], "name": user["username"], "email": user["email"]}
+    except psycopg2.errors.UniqueViolation as e:
+      conn.rollback()
+      raise HTTPException(status_code=400, detail="Email already registered")
+    finally:
+      cursor.close()
 @router.post("/auth/login", tags=["auth"])
 def login_user(user: dict):
   cursor = conn.cursor()

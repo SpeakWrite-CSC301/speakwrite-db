@@ -36,6 +36,9 @@ def post_user(user: dict):
     except psycopg2.errors.UniqueViolation as e:
       conn.rollback()
       raise HTTPException(status_code=400, detail="Email already registered")
+    except Exception as e:
+      conn.rollback()
+      raise HTTPException(status_code=500, detail =f"Unexpected DB error: {e}")
     finally:
       cursor.close()
 @router.post("/auth/login", tags=["auth"])
